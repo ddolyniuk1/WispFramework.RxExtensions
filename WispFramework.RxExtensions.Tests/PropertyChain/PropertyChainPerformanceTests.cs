@@ -1,11 +1,10 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
+using WispFramework.RxExtensions.Tests.Structures;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace WispFramework.RxExtensions.Tests
+namespace WispFramework.RxExtensions.Tests.PropertyChain
 {
     public class PropertyChainPerformanceTests : IDisposable
     {
@@ -168,7 +167,7 @@ namespace WispFramework.RxExtensions.Tests
         private void SetupReactiveSubscription()
         {
             _subscription = _person
-                .ObservePropertyChain(p => p.Address.Building.ApartmentNumber)
+                .ObserveValuePropertyChain(p => p.Address.Building.ApartmentNumber)
                 .Subscribe(value =>
                 {
                     _reactiveValue = value;

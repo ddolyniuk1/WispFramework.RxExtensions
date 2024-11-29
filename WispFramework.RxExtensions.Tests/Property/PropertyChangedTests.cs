@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using WispFramework.RxExtensions.Tests.Structures;
 using Xunit;
 
 namespace WispFramework.RxExtensions.Tests

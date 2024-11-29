@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using WispFramework.RxExtensions.Tests.Structures;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace WispFramework.RxExtensions.Tests;
+namespace WispFramework.RxExtensions.Tests.Property;
 
 public class PropertyChangedPerformanceTests : IDisposable
 {
@@ -35,7 +36,7 @@ public class PropertyChangedPerformanceTests : IDisposable
         // Arrange
         SetupSubscriptions();
         var stopwatch = new Stopwatch();
-        var results = new System.Collections.Generic.List<(string Method, long Milliseconds)>();
+        var results = new List<(string Method, long Milliseconds)>();
 
         // Warm up
         for (int i = 0; i < 100; i++)
@@ -93,7 +94,7 @@ public class PropertyChangedPerformanceTests : IDisposable
         // Arrange
         SetupNestedSubscriptions();
         var stopwatch = new Stopwatch();
-        var results = new System.Collections.Generic.List<(string Method, long Milliseconds)>();
+        var results = new List<(string Method, long Milliseconds)>();
 
         // Warm up
         for (int i = 0; i < 100; i++)

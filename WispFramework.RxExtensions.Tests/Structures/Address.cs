@@ -1,16 +1,28 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace WispFramework.RxExtensions.Tests;
+namespace WispFramework.RxExtensions.Tests.Structures;
 
-public class Building : INotifyPropertyChanged
+public class Address : INotifyPropertyChanged
 {
-    private int _apartmentNumber;
+    private Building _building;
+    private string _street;
 
-    public int ApartmentNumber
+    public string Street
     {
-        get => _apartmentNumber;
-        set => SetField(ref _apartmentNumber, value);
+        get => _street;
+        set
+        {
+            if (value == _street) return;
+            _street = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public Building Building
+    {
+        get => _building;
+        set => SetField(ref _building, value);
     }
 
     public event PropertyChangedEventHandler PropertyChanged;

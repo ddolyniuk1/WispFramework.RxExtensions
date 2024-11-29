@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Linq;
+﻿using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Reactive;
 using System.Reactive.Disposables;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
-namespace WispFramework.RxExtensions.Tests
+namespace WispFramework.RxExtensions.Tests.Reactive
 {
     public class ReactiveExtensionsTests
     {
@@ -92,7 +86,7 @@ namespace WispFramework.RxExtensions.Tests
 
             Assert.Equal(1, count);
         }
- 
+
 
         [Fact]
         public async Task QueueLatestWhileBusy_WithObservable_ShouldRespectShortCircuit()
@@ -114,7 +108,7 @@ namespace WispFramework.RxExtensions.Tests
 
             Assert.Equal(new[] { 2 }, results);
         }
-         
+
         [Fact]
         public async Task RetryWithDelay_ShouldRetryWithSpecifiedDelay()
         {

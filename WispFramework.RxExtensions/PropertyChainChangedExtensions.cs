@@ -12,8 +12,8 @@ namespace WispFramework.RxExtensions
     public static class PropertyChainChangedExtensions
     {
         private static readonly ConcurrentDictionary<string, List<string>> PropertyPathCache = new();
-
-        public static IObservable<TProperty?> ObservePropertyChain<TSource, TProperty>(
+         
+        public static IObservable<TProperty?> ObserveValuePropertyChain<TSource, TProperty>(
             this TSource source,
             Expression<Func<TSource, TProperty>> propertyExpression)
             where TSource : INotifyPropertyChanged
@@ -113,6 +113,7 @@ namespace WispFramework.RxExtensions
             propertyPath.Reverse();
             return propertyPath;
         }
+
         private static Func<TSource, TProperty?> CreateNullSafeGetter<TSource, TProperty>(
             Expression<Func<TSource, TProperty>> expression)
             where TProperty : struct
@@ -128,11 +129,9 @@ namespace WispFramework.RxExtensions
         {
             if (expression is not MemberExpression memberExpr) return expression;
             var innerExpression = AddNullChecks(memberExpr.Expression);
-             
+
             var memberType = memberExpr.Type;
-            var nullableType = memberType.IsValueType ?
-                typeof(Nullable<>).MakeGenericType(memberType) :
-                memberType;
+            var nullableType = memberType.IsValueType ? typeof(Nullable<>).MakeGenericType(memberType) : memberType;
 
             var nullCheck = Expression.Condition(
                 Expression.Equal(innerExpression, Expression.Constant(null)),
@@ -143,13 +142,14 @@ namespace WispFramework.RxExtensions
             );
             return nullCheck;
         }
+
         private static TProperty GetValueSafely<TSource, TProperty>(
             TSource source,
             Func<TSource, TProperty> getter)
         {
             try
             {
-                var value = getter(source); 
+                var value = getter(source);
                 if (value is not null || typeof(TProperty).IsValueType)
                     return value;
                 return default;
@@ -162,6 +162,108 @@ namespace WispFramework.RxExtensions
             {
                 return default;
             }
+        }
+
+        public static IObservable<TProperty> ObserveReferencePropertyChain<TSource, TProperty>(
+            this TSource source,
+            Expression<Func<TSource, TProperty>> propertyExpression)
+            where TSource : INotifyPropertyChanged
+            where TProperty : class
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (propertyExpression == null) throw new ArgumentNullException(nameof(propertyExpression));
+
+            var expressionString = propertyExpression.ToString();
+            var propertyPath = PropertyPathCache.GetOrAdd(expressionString, _ => GetPropertyPath(propertyExpression));
+            var getter = CreateNullSafeReferenceGetter(propertyExpression);
+
+            return Observable.Create<TProperty?>(observer =>
+            {
+                var subscriptions = new CompositeDisposable();
+                TProperty? previousValue = null;
+                var syncRoot = new object();
+                var initialized = false;
+
+                UpdateSubscriptions();
+                EmitValue();
+
+                return subscriptions;
+
+                void EmitValue()
+                {
+                    lock (syncRoot)
+                    {
+                        var value = getter(source);
+                        if (initialized && EqualityComparer<TProperty?>.Default.Equals(value, previousValue)) return;
+                        previousValue = value;
+                        observer.OnNext(value);
+                        initialized = true;
+                    }
+                }
+
+                void UpdateSubscriptions()
+                {
+                    lock (syncRoot)
+                    {
+                        subscriptions.Clear();
+                        INotifyPropertyChanged? current = source;
+                        var propertyQueue = new Queue<string>(propertyPath);
+
+                        while (current != null && propertyQueue.Count > 0)
+                        {
+                            var obj = current;
+                            var propertyName = propertyQueue.Dequeue();
+
+                            var propertyChanged = Observable
+                                .FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>(
+                                    h => obj.PropertyChanged += h,
+                                    h => obj.PropertyChanged -= h)
+                                .Where(x => string.IsNullOrEmpty(x.EventArgs.PropertyName) ||
+                                            x.EventArgs.PropertyName == propertyName);
+
+                            var subscription = propertyChanged
+                                .Subscribe(_ =>
+                                {
+                                    EmitValue();
+                                    if (propertyQueue.Count > 0)
+                                    {
+                                        UpdateSubscriptions();
+                                    }
+                                });
+
+                            subscriptions.Add(subscription);
+
+                            if (propertyQueue.Count <= 0) continue;
+                            var property = obj.GetType().GetProperty(propertyName);
+                            current = property?.GetValue(obj) as INotifyPropertyChanged;
+                        }
+                    }
+                }
+            });
+        }
+
+        private static Func<TSource, TProperty?> CreateNullSafeReferenceGetter<TSource, TProperty>(
+            Expression<Func<TSource, TProperty>> expression)
+            where TProperty : class
+        {
+            var nullCheckedExpression = AddNullChecksForReference(expression.Body);
+            var lambda = Expression.Lambda<Func<TSource, TProperty?>>(
+                nullCheckedExpression,
+                expression.Parameters);
+            return lambda.Compile();
+        }
+
+        private static Expression AddNullChecksForReference(Expression expression)
+        {
+            if (expression is not MemberExpression memberExpr) return expression;
+
+            var innerExpression = AddNullChecksForReference(memberExpr.Expression);
+            var nullCheck = Expression.Condition(
+                Expression.Equal(innerExpression, Expression.Constant(null)),
+                Expression.Constant(null, memberExpr.Type),
+                Expression.MakeMemberAccess(innerExpression, memberExpr.Member)
+            );
+            return nullCheck;
         }
     }
 }

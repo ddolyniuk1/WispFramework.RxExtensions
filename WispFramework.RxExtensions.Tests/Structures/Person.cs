@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace WispFramework.RxExtensions.Tests
+namespace WispFramework.RxExtensions.Tests.Structures
 {
     public class Person : INotifyPropertyChanged
     {

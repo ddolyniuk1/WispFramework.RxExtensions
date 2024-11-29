@@ -1,7 +1,8 @@
 ﻿using System.Linq.Expressions;
+using WispFramework.RxExtensions.Tests.Structures;
 using Xunit;
 
-namespace WispFramework.RxExtensions.Tests;
+namespace WispFramework.RxExtensions.Tests.PropertyChain;
 
 public class PropertyChainChangedTests : IDisposable
 {
@@ -133,7 +134,7 @@ public class PropertyChainChangedTests : IDisposable
     private void SetupSubscription(Expression<Func<Person, int>> expression)
     {
         _subscription = _person
-            .ObservePropertyChain(expression)
+            .ObserveValuePropertyChain(expression)
             .Subscribe(value =>
             {
                 _lastValue = value;
