@@ -10,10 +10,16 @@
     <Description>Complex but efficient reactive extension methods for ease of development.</Description>
     <Copyright>2024</Copyright>
     <PackageTags>rx.net</PackageTags>
+    <PackageProjectUrl>https://github.com/ddolyniuk1/WispFramework.RxExtensions/</PackageProjectUrl>
   </PropertyGroup>
+	<PropertyGroup>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup> 
 
-  <ItemGroup>
+	<ItemGroup>
     <PackageReference Include="System.Reactive" Version="6.0.1" />
+    <None Include="..\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>

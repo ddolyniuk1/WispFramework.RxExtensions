@@ -70,7 +70,7 @@ namespace WispFramework.RxExtensions
         public static IObservable<Unit> ToUnit<TInput, TOutput>(this IObservable<TInput> source,
             Func<TInput, IObservable<TOutput>> selector) => source
             .Select(_ => Unit.Default);
-           
+
         public static IObservable<T> QueueLatestWhileBusy<T>(
             this IObservable<T> source,
             Func<T, IObservable<Unit>> operation,
@@ -96,26 +96,22 @@ namespace WispFramework.RxExtensions
                     {
                         hasChanged = true;
                     }
-
                 }).DisposeWith(disposable);
-                 
+
                 void ProcessValue(T value)
-                { 
+                {
                     busy.OnNext(true);
                     var internalComp = new CompositeDisposable();
 
                     var testObs = shortCircuit(value);
                     operation(value)
                         .TakeUntil(testObs.Where(t => t))
-                        .Subscribe(_ =>
-                        {
-                            busy.OnNext(false);
-                        }).DisposeWith(internalComp);
+                        .Subscribe(_ => { busy.OnNext(false); }).DisposeWith(internalComp);
 
                     testObs.Subscribe(b =>
                         {
                             if (b)
-                            { 
+                            {
                                 busy.OnNext(false);
                             }
                         })
@@ -131,40 +127,38 @@ namespace WispFramework.RxExtensions
                         hasChanged = false;
                         ProcessValue(latest.Value);
                     }
-
                 }).DisposeWith(disposable);
 
                 return disposable;
             });
-        } 
+        }
 
-    /// <summary>
-    /// Retries an operation with a dynamic delay between attempts.
-    /// </summary>
-    /// <typeparam name="T">The type of elements in the sequence</typeparam>
-    /// <param name="source">The source observable sequence</param>
-    /// <param name="retryCount">Maximum number of retry attempts</param>
-    /// <param name="getDelay">Function that returns the delay duration based on the current retry attempt</param>
-    /// <returns>An observable sequence that retries on error with specified delays</returns>
-    public static IObservable<T> RetryWithDelay<T>(
-        this IObservable<T> source,
-        int retryCount,
-        Func<int, TimeSpan> getDelay)
-    {
-        var attempt = 0;
-        return Observable.Defer(() => source)
-            .Catch<T, Exception>(ex =>
-            {
-                if (attempt >= retryCount)
+        /// <summary>
+        /// Retries an operation with a dynamic delay between attempts.
+        /// </summary>
+        /// <typeparam name="T">The type of elements in the sequence</typeparam>
+        /// <param name="source">The source observable sequence</param>
+        /// <param name="retryCount">Maximum number of retry attempts</param>
+        /// <param name="getDelay">Function that returns the delay duration based on the current retry attempt</param>
+        /// <returns>An observable sequence that retries on error with specified delays</returns>
+        public static IObservable<T> RetryWithDelay<T>(
+            this IObservable<T> source,
+            int retryCount,
+            Func<int, TimeSpan> getDelay)
+        {
+            var attempt = 0;
+            return Observable.Defer(() => source)
+                .Catch<T, Exception>(ex =>
                 {
-                    return Observable.Throw<T>(ex);
-                }
+                    if (attempt >= retryCount)
+                    {
+                        return Observable.Throw<T>(ex);
+                    }
 
-                return Observable.Timer(getDelay(attempt++))
-                    .SelectMany(_ => Observable.Defer(() => source));
-            })
-            .Retry(retryCount);
+                    return Observable.Timer(getDelay(attempt++))
+                        .SelectMany(_ => Observable.Defer(() => source));
+                })
+                .Retry(retryCount);
+        }
     }
-}
-
 }
