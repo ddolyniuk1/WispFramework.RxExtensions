@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net480</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings> 
+    <PlatformTarget>x64</PlatformTarget> 
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WispFramework.RxExtensions\WispFramework.RxExtensions.csproj" />
+  </ItemGroup>
+
+</Project>
