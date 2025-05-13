@@ -7,6 +7,7 @@ public class Building : INotifyPropertyChanged
 {
     private int _apartmentNumber;
     private string _name;
+    private bool _buildingCodesArePre2021;
 
     public int ApartmentNumber
     {
@@ -21,6 +22,17 @@ public class Building : INotifyPropertyChanged
         {
             if (value == _name) return;
             _name = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool BuildingCodesArePre2021
+    {
+        get => _buildingCodesArePre2021;
+        set
+        {
+            if (value == _buildingCodesArePre2021) return;
+            _buildingCodesArePre2021 = value;
             OnPropertyChanged();
         }
     }

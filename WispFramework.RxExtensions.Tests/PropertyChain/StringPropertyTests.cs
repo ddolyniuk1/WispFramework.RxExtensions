@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Reactive.Linq;
 using WispFramework.RxExtensions.Tests.Structures;
 using Xunit;
 
@@ -61,6 +62,19 @@ public class StringPropertyTests : IDisposable
         Assert.Equal("New Tower", _lastValue);
         Assert.Equal(3, _notificationCount);
     }
+
+    [Fact]
+    public void ObservePropertyChain_TracksCorrectly()
+    {
+        SetupSubscription(p => p.Address.Building.Name);
+        _person.Address.Building.Name = null;
+        Assert.Null(_lastValue);
+        _person.Address.Building.Name = "Old Tower";
+        Assert.Equal("Old Tower", _lastValue);
+        _person.Address.Building.Name = "New Tower";
+        Assert.Equal("New Tower", _lastValue);
+        Assert.Equal(4, _notificationCount);
+    } 
 
     private void SetupSubscription(Expression<Func<Person, string>> expression)
     {

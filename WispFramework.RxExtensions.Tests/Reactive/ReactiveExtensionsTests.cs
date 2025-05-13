@@ -68,26 +68,7 @@ namespace WispFramework.RxExtensions.Tests.Reactive
             Assert.Equal("Value100", results[0]);
             Assert.Equal("Value200", results[1]);
         }
-
-        [Fact]
-        public async Task ToUnit_ShouldIgnoreOperationResults()
-        {
-            var values = new Subject<int>();
-            var count = 0;
-
-            values.ToUnit(x =>
-                Observable.Timer(TimeSpan.FromMilliseconds(x))
-                    .Select(_ => $"Value{x}"))
-                .Subscribe(_ => count++);
-
-            values.OnNext(100);
-
-            await Task.Delay(200);
-
-            Assert.Equal(1, count);
-        }
-
-
+          
         [Fact]
         public async Task QueueLatestWhileBusy_WithObservable_ShouldRespectShortCircuit()
         {
@@ -134,6 +115,17 @@ namespace WispFramework.RxExtensions.Tests.Reactive
 
             Assert.Equal(3, result);
             Assert.Equal(3, attempts);
+        }
+
+        [Fact]
+        public void IfThenElse()
+        {
+            var li = new List<long>();
+
+             
+            Observable.Interval(TimeSpan.FromMilliseconds(10))
+                .TakeUntil(t => t > 30);
+
         }
     }
 }

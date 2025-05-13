@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -67,10 +68,183 @@ namespace WispFramework.RxExtensions
         /// <param name="source">The source observable sequence</param>
         /// <param name="selector">Transform function to apply to each element</param>
         /// <returns>An observable sequence of Unit values</returns>
-        public static IObservable<Unit> ToUnit<TInput, TOutput>(this IObservable<TInput> source,
-            Func<TInput, IObservable<TOutput>> selector) => source
+        public static IObservable<Unit> ToUnit<TInput, TOutput>(this IObservable<TInput> source) => source
             .Select(_ => Unit.Default);
 
+        public static IObservable<T> FireOnChangeStart<T>(
+            this IObservable<T> source,
+            TimeSpan detectionWindow,
+            Action onChangeStart)
+        {
+            return Observable.Create<T>(observer =>
+            {
+                var disposable = new CompositeDisposable();
+                var hasStarted = false;
+                var changeDetected = new Subject<Unit>();
+
+                changeDetected
+                    .DisposeWith(disposable);
+
+                source
+                    .Do(_ =>
+                    {
+                        if (hasStarted) return;
+                        hasStarted = true;
+                        changeDetected.OnNext(Unit.Default);
+                    })
+                    .Subscribe(observer)
+                    .DisposeWith(disposable);
+
+                changeDetected
+                    .Take(1)
+                    .Delay(detectionWindow)
+                    .Subscribe(_ => onChangeStart())
+                    .DisposeWith(disposable);
+
+                return disposable;
+            });
+        }
+
+        public static IObservable<T> FireOnChangeEnd<T>(
+            this IObservable<T> source,
+            TimeSpan detectionWindow,
+            Action onChangeEnd)
+        {
+            return Observable.Create<T>(observer =>
+            { 
+                var disposable = new CompositeDisposable();
+
+                source
+                    .Throttle(detectionWindow) 
+                    .Subscribe(_ =>
+                    {
+                        onChangeEnd?.Invoke();
+                    })
+                    .DisposeWith(disposable);
+
+                return disposable;
+            });
+        }
+
+        public static IObservable<TResult> ProcessLatestSequentially<TSource, TResult>(
+            this IObservable<TSource> source,
+            Func<TSource, IObservable<TResult>> workSelector,
+            Action<TSource, Exception>? onErrorInWork = null,
+            IScheduler? scheduler = null)
+        {
+            scheduler ??= Scheduler.Default;
+
+            onErrorInWork ??= (_, _) => { };
+            var latestHotSource = source.Replay(1).RefCount();
+
+            return Observable.Create<TResult>(observer =>
+            {
+                var trigger = new Subject<Unit>();
+                var disposables = new CompositeDisposable();
+
+                disposables.Add(trigger);
+
+                var processingSubscription = trigger
+                    .ObserveOn(scheduler)
+                    .ConcatSelect(_ =>
+                        latestHotSource
+                            .Take(1)
+                            .SelectMany(itemToProcess =>
+                            {
+                                IObservable<TResult> workObservable;
+                                try
+                                {
+                                    workObservable = workSelector(itemToProcess);
+                                }
+                                catch (Exception ex)
+                                {
+                                    onErrorInWork(itemToProcess, ex);
+                                    scheduler.Schedule(() => trigger.OnNext(Unit.Default));
+                                    return Observable.Empty<TResult>();
+                                }
+
+                                return workObservable
+                                    .Do(
+                                        _ => { },
+                                        ex => { },
+                                        () => { scheduler.Schedule(() => trigger.OnNext(Unit.Default)); }
+                                    )
+                                    .Catch<TResult, Exception>(ex =>
+                                    {
+                                        onErrorInWork(itemToProcess, ex);
+                                        scheduler.Schedule(() => trigger.OnNext(Unit.Default));
+                                        return Observable.Empty<TResult>();
+                                    });
+                            })
+                    )
+                    .Subscribe(observer);
+
+                disposables.Add(processingSubscription);
+
+                var sourceTerminationSubscription = latestHotSource
+                    .Materialize()
+                    .ObserveOn(scheduler)
+                    .Subscribe(notification =>
+                    {
+                        switch (notification.Kind)
+                        {
+                            case NotificationKind.OnError:
+                                observer.OnError(notification?.Exception ?? new UnspecifiedExceptionOccurred());
+                                trigger.OnCompleted();
+                                break;
+                            case NotificationKind.OnCompleted:
+                                trigger.OnCompleted();
+                                break;
+                        }
+                    });
+                disposables.Add(sourceTerminationSubscription);
+
+                scheduler.Schedule(() => trigger.OnNext(Unit.Default));
+
+                return disposables;
+            });
+        }
+
+        public static IObservable<T> TakeUntil<T>(
+            this IObservable<T> source,
+            CancellationToken cancellationToken)
+        {  
+            if(source == null) throw new ArgumentNullException("source");
+            return Observable.Create<T>(observer =>
+            {
+                var disposable = new CompositeDisposable();
+                var serialDisposable = new SerialDisposable();
+                serialDisposable.DisposeWith(disposable);
+                source.Subscribe(observer)
+                    .DisposeWith(serialDisposable);
+                CancellationTokenRegistration? registration = null;
+                Observable
+                    .FromEvent(
+                        h =>
+                        {
+                            registration = cancellationToken.Register(h);
+                        },
+                        h =>
+                        {
+                            registration?.Dispose();
+                            registration = null;
+                        })
+                    .Take(1)
+                    .Subscribe(_ =>
+                    {
+                        observer.OnCompleted();
+                        serialDisposable?.Disposable?.Dispose();
+                    }).DisposeWith(disposable);
+
+                Disposable.Create(() =>
+                {
+                    registration?.Dispose();
+                    registration = null;
+                }).DisposeWith(disposable);
+
+                return disposable;
+            });
+        }
         public static IObservable<T> QueueLatestWhileBusy<T>(
             this IObservable<T> source,
             Func<T, IObservable<Unit>> operation,
@@ -160,5 +334,9 @@ namespace WispFramework.RxExtensions
                 })
                 .Retry(retryCount);
         }
+    }
+
+    public class UnspecifiedExceptionOccurred : Exception
+    {
     }
 }

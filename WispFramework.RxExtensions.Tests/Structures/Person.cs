@@ -20,6 +20,7 @@ namespace WispFramework.RxExtensions.Tests.Structures
             set => SetField(ref _address, value);
         }
 
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
