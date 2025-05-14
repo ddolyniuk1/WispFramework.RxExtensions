@@ -334,6 +334,81 @@ namespace WispFramework.RxExtensions
                 })
                 .Retry(retryCount);
         }
+
+        /// <summary>
+        /// Invokes an action for each element in the observable sequence.
+        /// This is an alias for the <see cref="Observable.Do{TSource}(IObservable{TSource}, Action{TSource})"/> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="onNext">Action to invoke for each element in the observable sequence.</param>
+        /// <returns>The source sequence with the side-effecting behavior applied.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="onNext"/> is null.</exception>
+        public static IObservable<TSource> Tap<TSource>(this IObservable<TSource> source, Action<TSource> onNext)
+        {
+            // Argument validation is handled by the underlying .Do method.
+            return source.Do(onNext);
+        }
+
+        /// <summary>
+        /// Invokes an action for each element in the observable sequence and invokes an action upon graceful termination of the observable sequence.
+        /// This is an alias for the <see cref="Observable.Do{TSource}(IObservable{TSource}, Action{TSource}, Action)"/> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="onNext">Action to invoke for each element in the observable sequence.</param>
+        /// <param name="onCompleted">Action to invoke upon graceful termination of the observable sequence.</param>
+        /// <returns>The source sequence with the side-effecting behavior applied.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="onNext"/> or <paramref name="onCompleted"/> is null.</exception>
+        public static IObservable<TSource> Tap<TSource>(this IObservable<TSource> source, Action<TSource> onNext, Action onCompleted)
+        {
+            return source.Do(onNext, onCompleted);
+        }
+
+        /// <summary>
+        /// Invokes an action for each element in the observable sequence and invokes an action upon exceptional termination of the observable sequence.
+        /// This is an alias for the <see cref="Observable.Do{TSource}(IObservable{TSource}, Action{TSource}, Action{Exception})"/> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="onNext">Action to invoke for each element in the observable sequence.</param>
+        /// <param name="onError">Action to invoke upon exceptional termination of the observable sequence.</param>
+        /// <returns>The source sequence with the side-effecting behavior applied.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="onNext"/> or <paramref name="onError"/> is null.</exception>
+        public static IObservable<TSource> Tap<TSource>(this IObservable<TSource> source, Action<TSource> onNext, Action<Exception> onError)
+        {
+            return source.Do(onNext, onError);
+        }
+
+        /// <summary>
+        /// Invokes an action for each element in the observable sequence and invokes an action upon termination of the observable sequence.
+        /// This is an alias for the <see cref="Observable.Do{TSource}(IObservable{TSource}, Action{TSource}, Action{Exception}, Action)"/> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="onNext">Action to invoke for each element in the observable sequence.</param>
+        /// <param name="onError">Action to invoke upon exceptional termination of the observable sequence.</param>
+        /// <param name="onCompleted">Action to invoke upon graceful termination of the observable sequence.</param>
+        /// <returns>The source sequence with the side-effecting behavior applied.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="onNext"/>, <paramref name="onError"/> or <paramref name="onCompleted"/> is null.</exception>
+        public static IObservable<TSource> Tap<TSource>(this IObservable<TSource> source, Action<TSource> onNext, Action<Exception> onError, Action onCompleted)
+        {
+            return source.Do(onNext, onError, onCompleted);
+        }
+
+        /// <summary>
+        /// Invokes the observer's methods for each notification in the observable sequence.
+        /// This is an alias for the <see cref="Observable.Do{TSource}(IObservable{TSource}, IObserver{TSource})"/> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="observer">Observer whose methods to invoke for each notification in the source sequence.</param>
+        /// <returns>The source sequence with the side-effecting behavior applied.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="observer"/> is null.</exception>
+        public static IObservable<TSource> Tap<TSource>(this IObservable<TSource> source, IObserver<TSource> observer)
+        {
+            return source.Do(observer);
+        }
     }
 
     public class UnspecifiedExceptionOccurred : Exception
